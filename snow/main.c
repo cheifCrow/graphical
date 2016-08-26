@@ -160,7 +160,7 @@ void graphicsLoop() {
 		t2 = SDL_GetTicks();
 		t = 16-(t2-t);
 		if(t < 0) {
-			printf("Warning your computer cannot sustain a stable framerate\n");
+			printf("Warning your computer cannot sustain the targeted 60 fps\n");
 		}
 		else {
 			SDL_Delay(t);
