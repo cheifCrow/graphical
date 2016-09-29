@@ -8,9 +8,23 @@
 #endif
 #include <time.h>
 
+#define EMPTY 0
+#define PERMBLOCK 1
+#define BLOCK 2
+#define TMPBLOCK 3
+
+#define NONE 0
+#define BLACK 1
+#define RED 2
+#define BLUE 3
+#define GREEN 4
+#define ORANGE 5
+#define YELLOW 6
+
 typedef struct blkslot {
-    unsigned int occupied;
+    unsigned int state;
     unsigned int color;
+    SDL_Rect block;
 }blkslot;
 
 const int SCREEN_WIDTH = 640;
@@ -22,11 +36,62 @@ SDL_Event event;
 SDL_Surface* surf;
 SDL_Texture* tex;
 const Uint8 *keystates;
+
+//12 across 23 high
+//2 rows invisible at top, one row is bottom
 blkslot board[276];
 
 void cleanup() {
     SDL_DestroyRenderer(rendr);
     SDL_DestroyWindow(win);
+}
+
+void initboard() {
+    int xoffset = 100;
+    int yoffset = 440;
+    int i;
+    
+    for (i = 0; i<252; i++) {
+        board[i].block.x = xoffset + 21*(i%12);
+        board[i].block.y = yoffset - 21*(i/12);
+        board[i].block.w = 20;
+        board[i].block.h = 20;
+    }
+
+    for (i = 0; i<23; i++) {
+        int left = i*12;
+        int right = left+11;
+
+        board[left].state = PERMBLOCK;
+        board[left].color = BLACK;
+
+        board[right].state = PERMBLOCK;
+        board[right].color = BLACK;
+
+    }
+    
+    for (i = 1; i<11; i++) {
+        board[i].state = PERMBLOCK;
+        board[i].color = BLACK;
+
+    }
+}
+
+void drawboard() {
+    int i;
+    for (i = 0; i<276; i++) {
+        if (board[i].state != 10) {
+            switch(board[i].color) {
+                case (BLACK):
+                    SDL_SetRenderDrawColor(rendr, 0,0,0,255);
+                    break;
+                default:
+                    SDL_SetRenderDrawColor(rendr, 255,0,0,255);
+                    break;
+            }
+            SDL_RenderFillRect(rendr, &board[i].block);
+        }
+    }
 }
 
 void game() {
@@ -45,6 +110,9 @@ void game() {
 
     SDL_SetRenderDrawColor(rendr, 255,255,255,255);
     SDL_RenderClear(rendr);
+
+    drawboard();
+
     SDL_RenderPresent(rendr);
 
     SDL_Delay(16);
@@ -73,6 +141,7 @@ int main() {
         }
     }
 
+    initboard();
     game();
 
     cleanup();
