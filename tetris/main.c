@@ -21,6 +21,8 @@
 #define ORANGE 5
 #define YELLOW 6
 
+#define FUNCTION 1
+
 typedef struct blkslot {
     unsigned int state;
     unsigned int color;
@@ -36,6 +38,10 @@ SDL_Event event;
 SDL_Surface* surf;
 SDL_Texture* tex;
 const Uint8 *keystates;
+SDL_TimerID drop_timer;
+Uint32 drop_time = 1000;
+int current_blocks[4];
+Uint32 movement_time = 50;
 
 //12 across 23 high
 //2 rows invisible at top, one row is bottom
@@ -46,7 +52,7 @@ void cleanup() {
     SDL_DestroyWindow(win);
 }
 
-void initboard() {
+void init_board() {
     int xoffset = 100;
     int yoffset = 440;
     int i;
@@ -77,7 +83,66 @@ void initboard() {
     }
 }
 
-void drawboard() {
+void spawn_new() {
+    int spawn_point = 245;
+    current_blocks[0] = spawn_point;
+    board[spawn_point].color = YELLOW;
+    board[spawn_point].state = TMPBLOCK;
+}
+
+
+void drop_block() {
+    printf("Tick\n");
+    Uint8 i;
+    Uint8 stop_fall;
+
+    for(i=0;i<4;i++) {
+        if(current_blocks[i] != -1) {
+            if (board[current_blocks[i]].state == TMPBLOCK) {
+                if(board[current_blocks[i]-12].state == BLOCK || board[current_blocks[i]-12].state == PERMBLOCK) {
+                    stop_fall = 1;
+                }
+            }
+        }
+    }
+
+    if(stop_fall) {
+        for(i=0;i<4;i++) {
+            if (board[current_blocks[i]].state == TMPBLOCK) {
+                board[current_blocks[i]].state = BLOCK;
+                current_blocks[i] = -1;
+            }
+        }
+        spawn_new();
+    }
+    else {
+        for(i=0;i<4;i++) {
+            if(current_blocks[i] != -1) {
+                board[current_blocks[i]-12].state = board[current_blocks[i]].state;
+                board[current_blocks[i]-12].color = board[current_blocks[i]].color;
+                board[current_blocks[i]].state = EMPTY;
+                board[current_blocks[i]].color = NONE;
+                current_blocks[i] = current_blocks[i]-12;
+            }
+        }
+    }
+
+}
+
+Uint32 queue_drop(Uint32 interval, void *param) {
+    SDL_UserEvent e;
+    e.type = SDL_USEREVENT;
+    e.code = FUNCTION;
+    e.data1 = &drop_block;
+
+    event.type = SDL_USEREVENT;
+    event.user = e;
+
+    SDL_PushEvent(&event);
+    return(drop_time);
+}
+
+void draw_board() {
     int i;
     for (i = 0; i<276; i++) {
         if (board[i].state != 10) {
@@ -85,8 +150,11 @@ void drawboard() {
                 case (BLACK):
                     SDL_SetRenderDrawColor(rendr, 0,0,0,255);
                     break;
+                case (YELLOW):
+                    SDL_SetRenderDrawColor(rendr, 255,255,0,255);
+                    break;
                 default:
-                    SDL_SetRenderDrawColor(rendr, 255,0,0,255);
+                    SDL_SetRenderDrawColor(rendr, 255,255,255,255);
                     break;
             }
             SDL_RenderFillRect(rendr, &board[i].block);
@@ -103,6 +171,17 @@ void game() {
                 printf("Bye\n");
                 return;
                 break;
+            case SDL_USEREVENT:
+                switch (event.user.code) {
+                    case FUNCTION: {
+                        void (*f)() = event.user.data1;
+                        f();
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                break;
             default:
                 break;
         }
@@ -111,7 +190,7 @@ void game() {
     SDL_SetRenderDrawColor(rendr, 255,255,255,255);
     SDL_RenderClear(rendr);
 
-    drawboard();
+    draw_board();
 
     SDL_RenderPresent(rendr);
 
@@ -121,6 +200,10 @@ void game() {
 
 int main() {
     srand(time(NULL));
+    int i;
+    for(i=0;i<4;i++) {
+        current_blocks[i] = -1;
+    }
 
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf("Initialization error %s\n", SDL_GetError());
@@ -141,7 +224,9 @@ int main() {
         }
     }
 
-    initboard();
+    init_board();
+    spawn_new();
+    drop_timer = SDL_AddTimer(drop_time, queue_drop, NULL);
     game();
 
     cleanup();
