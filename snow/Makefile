@@ -1,10 +1,20 @@
 SOURCE = main.c
 OBJ = main.o
 CFLAGS = -Wall
-LIBS = -lSDL2
+CC = gcc
+
+OS = $(shell uname)
+ifeq ($(OS),Darwin)
+	LIBS = -framework SDL2
+else
+	LIBS = -lSDL2
+endif
 
 %.o: %.c
-	gcc $(CFLAGS) -c  $< 
+	$(CC) $(CFLAGS) -c  $< 
 
 snow: $(OBJ)
-	gcc $(CFLAGS) $^ $(LIBS) -o $@
+	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
+
+clean:
+	rm -f $(OBJ) snow

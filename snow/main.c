@@ -6,12 +6,14 @@
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
-typedef struct {
+typedef struct llmember llmember;
+
+struct llmember {
 	int down,horiz,r,g,b;
-	void* next;
-	void* prev;
+	llmember* next;
+	llmember* prev;
 	SDL_Rect flake;
-} llmember;
+};
 
 llmember* head = 0;
 llmember* tail = 0;
@@ -159,10 +161,7 @@ void graphicsLoop() {
 
 		t2 = SDL_GetTicks();
 		t = 16-(t2-t);
-		if(t < 0) {
-			printf("Warning your computer cannot sustain the targeted 60 fps\n");
-		}
-		else {
+		if(t > 0) {
 			SDL_Delay(t);
 		}		
 	}
